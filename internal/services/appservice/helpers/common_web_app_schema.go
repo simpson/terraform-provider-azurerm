@@ -1338,7 +1338,7 @@ func DisabledLogsConfig() *web.SiteLogsConfig {
 	}
 }
 
-func isFreeOrSharedServicePlan(inputSKU string) bool {
+func IsFreeOrSharedServicePlan(inputSKU string) bool {
 	result := false
 	for _, sku := range freeSkus {
 		if inputSKU == sku {

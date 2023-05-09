@@ -77,7 +77,7 @@ func decodeApplicationStackLinux(fxString string) ApplicationStackLinux {
 
 	case "COMPOSE":
 		// TODO
-	case "DOCKER":
+	default:
 		// Deprecated / bugged - to be removed post 4.0
 		// new docker parsing is done later
 		if dockerParts := strings.Split(parts[1], ":"); len(dockerParts) == 2 {
@@ -216,6 +216,7 @@ func DecodeFunctionAppDockerFxString(input string, partial ApplicationStackDocke
 
 	return []ApplicationStackDocker{partial}, nil
 }
+
 func JavaLinuxFxStringBuilder(javaMajorVersion, javaServer, javaServerVersion string) (*string, error) {
 	switch javaMajorVersion {
 	case "8":
@@ -274,4 +275,17 @@ func JavaLinuxFxStringBuilder(javaMajorVersion, javaServer, javaServerVersion st
 
 	}
 	return nil, fmt.Errorf("unsupported combination of `java_version`, `java_server`, and `java_server_version`")
+}
+
+func EncodeDockerFxString(image string, registryUrl string) string {
+	template := "DOCKER|%s/%s"
+
+	for _, prefix := range urlSchemes {
+		if strings.HasPrefix(registryUrl, prefix) {
+			registryUrl = strings.TrimPrefix(registryUrl, prefix)
+			continue
+		}
+	}
+
+	return fmt.Sprintf(template, registryUrl, image)
 }

@@ -776,6 +776,9 @@ func (s *SiteConfigLinuxWebAppSlot) SetHealthCheckEvictionTime(input map[string]
 
 func (s *SiteConfigLinuxWebAppSlot) DecodeDockerAppStack(input map[string]string) {
 	applicationStack := ApplicationStackLinux{}
+	if len(s.ApplicationStack) == 1 {
+		applicationStack = s.ApplicationStack[0]
+	}
 
 	if v, ok := input["DOCKER_REGISTRY_SERVER_URL"]; ok {
 		applicationStack.DockerRegistryUrl = v
@@ -791,68 +794,9 @@ func (s *SiteConfigLinuxWebAppSlot) DecodeDockerAppStack(input map[string]string
 
 	registryHost := trimURLScheme(applicationStack.DockerRegistryUrl)
 	dockerString := strings.TrimPrefix(s.LinuxFxVersion, "DOCKER|")
-	applicationStack.DockerImage = strings.TrimPrefix(dockerString, registryHost)
+	applicationStack.DockerImageName = strings.TrimPrefix(dockerString, registryHost)
 
 	s.ApplicationStack = []ApplicationStackLinux{applicationStack}
-}
-
-func FlattenSiteConfigLinuxWebAppSlot(appSiteSlotConfig *web.SiteConfig, healthCheckCount *int) []SiteConfigLinuxWebAppSlot {
-	if appSiteSlotConfig == nil {
-		return nil
-	}
-
-	siteConfig := SiteConfigLinuxWebAppSlot{
-		AlwaysOn:                pointer.From(appSiteSlotConfig.AlwaysOn),
-		AppCommandLine:          pointer.From(appSiteSlotConfig.AppCommandLine),
-		AutoHeal:                pointer.From(appSiteSlotConfig.AutoHealEnabled),
-		AutoHealSettings:        flattenAutoHealSettingsLinux(appSiteSlotConfig.AutoHealRules),
-		AutoSwapSlotName:        pointer.From(appSiteSlotConfig.AutoSwapSlotName),
-		ContainerRegistryMSI:    pointer.From(appSiteSlotConfig.AcrUserManagedIdentityID),
-		Cors:                    FlattenCorsSettings(appSiteSlotConfig.Cors),
-		DetailedErrorLogging:    pointer.From(appSiteSlotConfig.DetailedErrorLoggingEnabled),
-		Http2Enabled:            pointer.From(appSiteSlotConfig.HTTP20Enabled),
-		IpRestriction:           FlattenIpRestrictions(appSiteSlotConfig.IPSecurityRestrictions),
-		ManagedPipelineMode:     string(appSiteSlotConfig.ManagedPipelineMode),
-		ScmType:                 string(appSiteSlotConfig.ScmType),
-		FtpsState:               string(appSiteSlotConfig.FtpsState),
-		HealthCheckPath:         pointer.From(appSiteSlotConfig.HealthCheckPath),
-		HealthCheckEvictionTime: pointer.From(healthCheckCount),
-		LoadBalancing:           string(appSiteSlotConfig.LoadBalancing),
-		LocalMysql:              pointer.From(appSiteSlotConfig.LocalMySQLEnabled),
-		MinTlsVersion:           string(appSiteSlotConfig.MinTLSVersion),
-		WorkerCount:             int(pointer.From(appSiteSlotConfig.NumberOfWorkers)),
-		RemoteDebugging:         pointer.From(appSiteSlotConfig.RemoteDebuggingEnabled),
-		RemoteDebuggingVersion:  strings.ToUpper(pointer.From(appSiteSlotConfig.RemoteDebuggingVersion)),
-		ScmIpRestriction:        FlattenIpRestrictions(appSiteSlotConfig.ScmIPSecurityRestrictions),
-		ScmMinTlsVersion:        string(appSiteSlotConfig.ScmMinTLSVersion),
-		ScmUseMainIpRestriction: pointer.From(appSiteSlotConfig.ScmIPSecurityRestrictionsUseMain),
-		Use32BitWorker:          pointer.From(appSiteSlotConfig.Use32BitWorkerProcess),
-		UseManagedIdentityACR:   pointer.From(appSiteSlotConfig.AcrUseManagedIdentityCreds),
-		WebSockets:              pointer.From(appSiteSlotConfig.WebSocketsEnabled),
-		VnetRouteAllEnabled:     pointer.From(appSiteSlotConfig.VnetRouteAllEnabled),
-	}
-
-	if appSiteSlotConfig.APIManagementConfig != nil && appSiteSlotConfig.APIManagementConfig.ID != nil {
-		siteConfig.ApiManagementConfigId = *appSiteSlotConfig.APIManagementConfig.ID
-	}
-
-	if appSiteSlotConfig.APIDefinition != nil && appSiteSlotConfig.APIDefinition.URL != nil {
-		siteConfig.ApiDefinition = *appSiteSlotConfig.APIDefinition.URL
-	}
-
-	if appSiteSlotConfig.DefaultDocuments != nil {
-		siteConfig.DefaultDocuments = *appSiteSlotConfig.DefaultDocuments
-	}
-
-	if appSiteSlotConfig.LinuxFxVersion != nil {
-		var linuxAppStack ApplicationStackLinux
-		siteConfig.LinuxFxVersion = *appSiteSlotConfig.LinuxFxVersion
-		// Decode the string to docker values
-		linuxAppStack = decodeApplicationStackLinux(siteConfig.LinuxFxVersion)
-		siteConfig.ApplicationStack = []ApplicationStackLinux{linuxAppStack}
-	}
-
-	return []SiteConfigLinuxWebAppSlot{siteConfig}
 }
 
 func ExpandSiteConfigWindowsWebAppSlot(siteConfig []SiteConfigWindowsWebAppSlot, existing *web.SiteConfig, metadata sdk.ResourceMetaData) (*web.SiteConfig, *string, error) {
@@ -1194,6 +1138,9 @@ func (s *SiteConfigWindowsWebAppSlot) ParseNodeVersion(input map[string]string) 
 
 func (s *SiteConfigWindowsWebAppSlot) DecodeDockerAppStack(input map[string]string) {
 	applicationStack := ApplicationStackWindows{}
+	if len(s.ApplicationStack) == 1 {
+		applicationStack = s.ApplicationStack[0]
+	}
 
 	if v, ok := input["DOCKER_REGISTRY_SERVER_URL"]; ok {
 		applicationStack.DockerRegistryUrl = v

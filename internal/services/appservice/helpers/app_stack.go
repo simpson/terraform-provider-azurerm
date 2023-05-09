@@ -61,6 +61,7 @@ var windowsApplicationStackConstraintThreePointX = []string{
 }
 
 var windowsApplicationStackConstraintFourPointOh = []string{
+	"site_config.0.application_stack.0.docker_container_name",
 	"site_config.0.application_stack.0.docker_image_name",
 	"site_config.0.application_stack.0.dotnet_version",
 	"site_config.0.application_stack.0.dotnet_core_version",
@@ -392,6 +393,7 @@ type ApplicationStackLinux struct {
 
 var linuxApplicationStackConstraintThreePointX = []string{
 	"site_config.0.application_stack.0.docker_image",
+	"site_config.0.application_stack.0.docker_image_name",
 	"site_config.0.application_stack.0.dotnet_version",
 	"site_config.0.application_stack.0.java_version",
 	"site_config.0.application_stack.0.node_version",
@@ -401,7 +403,7 @@ var linuxApplicationStackConstraintThreePointX = []string{
 	"site_config.0.application_stack.0.go_version",
 }
 
-var linuxApplicationStackConstraintFourPointOh = []string{
+var linuxApplicationStackConstraint = []string{
 	"site_config.0.application_stack.0.docker_image_name",
 	"site_config.0.application_stack.0.dotnet_version",
 	"site_config.0.application_stack.0.java_version",
@@ -424,7 +426,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"6.0",
 					"7.0",
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"go_version": {
@@ -434,7 +436,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"1.19",
 					"1.18",
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"php_version": {
@@ -446,7 +448,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"8.1",
 					"8.2",
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"python_version": {
@@ -459,7 +461,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"3.10",
 					"3.11",
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"node_version": {
@@ -471,7 +473,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"16-lts",
 					"18-lts",
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"ruby_version": {
@@ -481,7 +483,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"2.6", // Deprecated - accepted but not offered in the portal. Remove in 4.0
 					"2.7", // EOL 31/03/2023 https://github.com/Azure/app-service-linux-docs/blob/master/Runtime_Support/ruby_support.md Remove Ruby support in 4.0?
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"java_version": {
@@ -492,7 +494,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 					"11",
 					"17",
 				}, false),
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 			},
 
 			"java_server": {
@@ -519,7 +521,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 			"docker_image_name": {
 				Type:         pluginsdk.TypeString,
 				Optional:     true,
-				ExactlyOneOf: linuxApplicationStackConstraintFourPointOh,
+				ExactlyOneOf: linuxApplicationStackConstraint,
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 
@@ -547,6 +549,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 		r.Schema["docker_image_tag"] = &pluginsdk.Schema{
 			Type:         pluginsdk.TypeString,
 			Optional:     true,
+			Computed:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
 			RequiredWith: []string{
 				"site_config.0.application_stack.0.docker_image",
@@ -556,6 +559,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 		r.Schema["docker_image"] = &pluginsdk.Schema{
 			Type:         pluginsdk.TypeString,
 			Optional:     true,
+			Computed:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
 			ExactlyOneOf: linuxApplicationStackConstraintThreePointX,
 			RequiredWith: []string{
@@ -564,6 +568,7 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 			Deprecated: "This property has been deprecated and will be removed in 4.0 of the provider.",
 		}
 
+		r.Schema["docker_image_name"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
 		r.Schema["dotnet_version"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
 		r.Schema["go_version"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
 		r.Schema["php_version"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
@@ -571,6 +576,10 @@ func linuxApplicationStackSchema() *pluginsdk.Schema {
 		r.Schema["node_version"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
 		r.Schema["ruby_version"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
 		r.Schema["java_version"].ExactlyOneOf = linuxApplicationStackConstraintThreePointX
+
+		r.Schema["docker_registry_url"].Computed = true
+		r.Schema["docker_registry_username"].Computed = true
+		r.Schema["docker_registry_password"].Computed = true
 
 	}
 

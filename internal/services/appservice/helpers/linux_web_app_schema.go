@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-provider-azurerm/internal/features"
 	"strconv"
 	"strings"
 
@@ -723,6 +724,146 @@ func autoHealTriggerSchemaLinuxComputed() *pluginsdk.Schema {
 	}
 }
 
+func (s *SiteConfigLinux) ExpandForCreate(appSettings map[string]string) *web.SiteConfig {
+	expanded := &web.SiteConfig{}
+
+	expanded.AlwaysOn = pointer.To(s.AlwaysOn)
+	expanded.AcrUseManagedIdentityCreds = pointer.To(s.UseManagedIdentityACR)
+	expanded.HTTP20Enabled = pointer.To(s.Http2Enabled)
+	expanded.ScmIPSecurityRestrictionsUseMain = pointer.To(s.ScmUseMainIpRestriction)
+	expanded.LocalMySQLEnabled = pointer.To(s.LocalMysql)
+	expanded.LoadBalancing = web.SiteLoadBalancing(s.LoadBalancing)
+	expanded.ManagedPipelineMode = web.ManagedPipelineMode(s.ManagedPipelineMode)
+	expanded.RemoteDebuggingEnabled = pointer.To(s.RemoteDebugging)
+	expanded.Use32BitWorkerProcess = pointer.To(s.Use32BitWorker)
+	expanded.WebSocketsEnabled = pointer.To(s.WebSockets)
+	expanded.FtpsState = web.FtpsState(s.FtpsState)
+	expanded.MinTLSVersion = web.SupportedTLSVersions(s.MinTlsVersion)
+	expanded.ScmMinTLSVersion = web.SupportedTLSVersions(s.ScmMinTlsVersion)
+	expanded.AutoHealEnabled = pointer.To(s.AutoHeal)
+	expanded.VnetRouteAllEnabled = pointer.To(s.VnetRouteAllEnabled)
+
+	if s.ApiManagementConfigId != "" {
+		expanded.APIManagementConfig = &web.APIManagementConfig{
+			ID: pointer.To(s.ApiManagementConfigId),
+		}
+	}
+
+	if s.ApiDefinition != "" {
+		expanded.APIDefinition = &web.APIDefinitionInfo{
+			URL: pointer.To(s.ApiDefinition),
+		}
+	}
+
+	if s.AppCommandLine != "" {
+		expanded.AppCommandLine = pointer.To(s.AppCommandLine)
+	}
+
+	if len(s.ApplicationStack) == 1 {
+		linuxAppStack := s.ApplicationStack[0]
+		if linuxAppStack.NetFrameworkVersion != "" {
+			expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("DOTNETCORE|%s", linuxAppStack.NetFrameworkVersion))
+		}
+
+		if linuxAppStack.GoVersion != "" {
+			expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("GO|%s", linuxAppStack.GoVersion))
+		}
+
+		if linuxAppStack.PhpVersion != "" {
+			expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("PHP|%s", linuxAppStack.PhpVersion))
+		}
+
+		if linuxAppStack.NodeVersion != "" {
+			expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("NODE|%s", linuxAppStack.NodeVersion))
+		}
+
+		if linuxAppStack.RubyVersion != "" {
+			expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("RUBY|%s", linuxAppStack.RubyVersion))
+		}
+
+		if linuxAppStack.PythonVersion != "" {
+			expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("PYTHON|%s", linuxAppStack.PythonVersion))
+		}
+
+		if linuxAppStack.JavaServer != "" {
+			javaString, err := JavaLinuxFxStringBuilder(linuxAppStack.JavaVersion, linuxAppStack.JavaServer, linuxAppStack.JavaServerVersion)
+			if err != nil {
+				// TODO return nil, fmt.Errorf("could not build linuxFxVersion string: %+v", err)
+			}
+			expanded.LinuxFxVersion = javaString
+		}
+
+		if !features.FourPointOhBeta() {
+			if linuxAppStack.DockerImage != "" {
+				expanded.LinuxFxVersion = pointer.To(fmt.Sprintf("DOCKER|%s:%s", linuxAppStack.DockerImage, linuxAppStack.DockerImageTag))
+			}
+		}
+
+		if linuxAppStack.DockerImageName != "" {
+			expanded.LinuxFxVersion = pointer.To(EncodeDockerFxString(linuxAppStack.DockerImageName, linuxAppStack.DockerRegistryUrl))
+			appSettings["DOCKER_REGISTRY_SERVER_URL"] = linuxAppStack.DockerRegistryUrl
+			appSettings["DOCKER_REGISTRY_SERVER_USERNAME"] = linuxAppStack.DockerRegistryUsername
+			appSettings["DOCKER_REGISTRY_SERVER_PASSWORD"] = linuxAppStack.DockerRegistryPassword
+		}
+	}
+
+	expanded.AppSettings = ExpandAppSettingsForCreate(appSettings)
+
+	if s.ContainerRegistryMSI != "" {
+		expanded.AcrUserManagedIdentityID = pointer.To(s.ContainerRegistryMSI)
+	}
+
+	if len(s.DefaultDocuments) != 0 {
+		expanded.DefaultDocuments = pointer.To(s.DefaultDocuments)
+	}
+
+	if len(s.IpRestriction) != 0 {
+		ipRestrictions, err := ExpandIpRestrictions(s.IpRestriction)
+		if err != nil {
+			// TODO - Needs errors?
+		}
+
+		expanded.IPSecurityRestrictions = ipRestrictions
+	}
+
+	if len(s.ScmIpRestriction) != 0 {
+		ipRestrictions, err := ExpandIpRestrictions(s.ScmIpRestriction)
+		if err != nil {
+			// TODO - Needs errors?
+		}
+
+		expanded.ScmIPSecurityRestrictions = ipRestrictions
+	}
+
+	if s.RemoteDebuggingVersion != "" {
+		expanded.RemoteDebuggingVersion = pointer.To(s.RemoteDebuggingVersion)
+	}
+
+	if s.HealthCheckPath != "" {
+		expanded.HealthCheckPath = pointer.To(s.HealthCheckPath)
+	}
+
+	if s.NumberOfWorkers != 0 {
+		expanded.NumberOfWorkers = pointer.To(int32(s.NumberOfWorkers))
+	}
+
+	if len(s.Cors) != 0 {
+		expanded.Cors = ExpandCorsSettings(s.Cors)
+	}
+
+	if len(s.AutoHealSettings) == 1 {
+		expanded.AutoHealRules = expandAutoHealSettingsLinux(s.AutoHealSettings)
+	}
+
+	return expanded
+}
+
+func (s *SiteConfigLinux) ExpandForUpdate(existing *web.SiteConfig, appSettings map[string]string) *web.SiteConfig {
+	expanded := *existing
+
+	return &expanded
+}
+
 func ExpandSiteConfigLinux(siteConfig []SiteConfigLinux, existing *web.SiteConfig, metadata sdk.ResourceMetaData, servicePlan web.AppServicePlan) (*web.SiteConfig, error) {
 	if len(siteConfig) == 0 {
 		return nil, nil
@@ -735,7 +876,7 @@ func ExpandSiteConfigLinux(siteConfig []SiteConfigLinux, existing *web.SiteConfi
 	linuxSiteConfig := siteConfig[0]
 
 	if servicePlan.Sku != nil && servicePlan.Sku.Name != nil {
-		if isFreeOrSharedServicePlan(*servicePlan.Sku.Name) {
+		if IsFreeOrSharedServicePlan(*servicePlan.Sku.Name) {
 			if linuxSiteConfig.AlwaysOn {
 				return nil, fmt.Errorf("always_on cannot be set to true when using Free, F1, D1 Sku")
 			}
@@ -955,6 +1096,9 @@ func (s *SiteConfigLinux) SetHealthCheckEvictionTime(input map[string]string) {
 
 func (s *SiteConfigLinux) DecodeDockerAppStack(input map[string]string) {
 	applicationStack := ApplicationStackLinux{}
+	if len(s.ApplicationStack) == 1 {
+		applicationStack = s.ApplicationStack[0]
+	}
 
 	if v, ok := input["DOCKER_REGISTRY_SERVER_URL"]; ok {
 		applicationStack.DockerRegistryUrl = v
@@ -970,7 +1114,7 @@ func (s *SiteConfigLinux) DecodeDockerAppStack(input map[string]string) {
 
 	registryHost := trimURLScheme(applicationStack.DockerRegistryUrl)
 	dockerString := strings.TrimPrefix(s.LinuxFxVersion, "DOCKER|")
-	applicationStack.DockerImage = strings.TrimPrefix(dockerString, registryHost)
+	applicationStack.DockerImageName = strings.TrimPrefix(dockerString, registryHost+"/")
 
 	s.ApplicationStack = []ApplicationStackLinux{applicationStack}
 }

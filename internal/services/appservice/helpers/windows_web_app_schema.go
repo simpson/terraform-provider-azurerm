@@ -458,7 +458,7 @@ func ExpandSiteConfigWindows(siteConfig []SiteConfigWindows, existing *web.SiteC
 	}
 
 	if servicePlan.Sku != nil && servicePlan.Sku.Name != nil {
-		if isFreeOrSharedServicePlan(*servicePlan.Sku.Name) {
+		if IsFreeOrSharedServicePlan(*servicePlan.Sku.Name) {
 			if winSiteConfig.AlwaysOn {
 				return nil, nil, fmt.Errorf("always_on cannot be set to true when using Free, F1, D1 Sku")
 			}
@@ -760,6 +760,9 @@ func (s *SiteConfigWindows) SetHealthCheckEvictionTime(input map[string]string) 
 
 func (s *SiteConfigWindows) DecodeDockerAppStack(input map[string]string) {
 	applicationStack := ApplicationStackWindows{}
+	if len(s.ApplicationStack) == 1 {
+		applicationStack = s.ApplicationStack[0]
+	}
 
 	if v, ok := input["DOCKER_REGISTRY_SERVER_URL"]; ok {
 		applicationStack.DockerRegistryUrl = v
